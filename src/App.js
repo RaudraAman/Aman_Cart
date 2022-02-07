@@ -3,7 +3,7 @@ import Cart from "./Cart";
 import Navbar from "./Navbar";
 import firebase from "./index";
 class App extends React.Component {
-  constructor(){
+  constructor(){  
     super();
     this.state = {
         products :  [],
@@ -12,30 +12,54 @@ class App extends React.Component {
    
 }
 componentDidMount () {
-   const ref = firebase.firestore().collection('prosucts').get().then((snapshot)=>{
-       snapshot.docs.map((doc)=>{
-        console.log(doc.data());
-       });
-       const products = snapshot.docs.map((doc)=>{
-         const result = doc.data();
-         result['id'] =doc.id; 
-         return result;
-       })
-       this.setState({
-         products:products,
-         loading:false
-       })
-   })
+  //  const ref = firebase.firestore().collection('prosucts').get().then((snapshot)=>{
+  //      snapshot.docs.map((doc)=>{
+  //       console.log(doc.data());
+  //      });
+  //      const products = snapshot.docs.map((doc)=>{
+  //        const result = doc.data();
+  //        result['id'] =doc.id; 
+  //        return result;
+  //      })
+  //      this.setState({
+  //        products:products,
+  //        loading:false
+  //      })
+  //  })
+  const ref = firebase.firestore().collection('prosucts').onSnapshot((snapshot)=>{
+    snapshot.docs.map((doc)=>{
+     console.log(doc.data());
+    });
+    const products = snapshot.docs.map((doc)=>{
+      const result = doc.data();
+      result['id'] =doc.id; 
+      return result;
+    })
+    this.setState({
+      products:products,
+      loading:false
+    })
+})
+
    
 }
 handleIncreaseQuantity = (product)=>{
-    console.log('hey please increase the quantity', product);
-    const {products} = this.state;
+     console.log('hey please increase the quantity', product);
+     const {products} = this.state;
     const index = products.indexOf(product);
-    products[index].qty+=1;
-    this.setState({
-        products:products
-    });
+    // products[index].qty+=1;
+    // this.setState({
+    //     products:products
+    // });
+    const docRef = firebase.firestore().collection('prosucts').doc(products[index].id);
+     console.log('refrence is ',docRef);
+    docRef.update({
+      qty:products[index].qty + 1
+    }).then(()=>{
+      console.log('document updated');
+    }).catch((error)=>{
+      console.log('error', error);
+    })
 }
 handleDecreaseQuantity = (product)=>{
     console.log('hey please decrease the quantity', product);
@@ -44,17 +68,28 @@ handleDecreaseQuantity = (product)=>{
     if(products[index].qty === 0){
         return;
     }
-    products[index].qty-=1;
-    this.setState({
-        products:products
-    });
+    const docRef = firebase.firestore().collection('prosucts').doc(products[index].id);
+     console.log('refrence is ',docRef);
+    docRef.update({
+      qty:products[index].qty - 1
+    }).then(()=>{
+      console.log('document updated');
+    }).catch((error)=>{
+      console.log('error', error);
+    })
 }
 handleDeleteProduct = (id)=>{
     const {products} = this.state;
-    const items = products.filter((item)=>
-    item.id !== id);
-    this.setState({
-        products:items
+    // const items = products.filter((item)=>
+    // item.id !== id);
+    // this.setState({
+    //     products:items
+    // })
+    const docRef = firebase.firestore().collection('prosucts').doc(id);
+    docRef.delete().then(()=>{
+      console.log('document deleted');
+    }).catch((error)=>{
+      console.log('error', error);
     })
 }
 getCartCount = ()=>{
@@ -74,6 +109,18 @@ getTotal = ()=>{
   return total;
 
 }
+addProduct = ()=>{
+  firebase.firestore().collection('prosucts').add({
+    img:' ',
+    price:100,
+    qty:3,
+    title:'washing machine'
+  }).then((docRef)=>{
+      console.log('product get added',docRef);
+  }).catch((error)=>{
+    console.log(error);
+  })
+}
   render(){
     const {products, loading} = this.state;
   return (
@@ -81,6 +128,7 @@ getTotal = ()=>{
       <Navbar 
       count = {this.getCartCount()}
       />
+      {/* <button onClick={this.addProduct} style={{padding:20,  fontSize:12}}>Add a Product</button> */}
       <Cart 
        products = {products}
       onIncreaseQuantity = {this.handleIncreaseQuantity}
